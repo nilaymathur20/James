@@ -1,0 +1,52 @@
+# Privacy-first single-container deployment.
+# Before `docker compose up`, follow DOCKER.md to create backend/.env and the
+# owner-controlled runtime directories under ./runtime.
+name: james-local-assistant
+
+services:
+  james:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # Set JAMES_IMAGE=james-local-assistant:voice only after building the
+    # optional local Vosk image described in DOCKER.md.
+    image: "${JAMES_IMAGE:-james-local-assistant:local}"
+    env_file:
+      - ./backend/.env
+    environment:
+      # Restrict the app's usable "home" to the purpose-built mount location.
+      # Bind only a folder you explicitly want James to inspect at /workspace.
+      HOME: /workspace
+      RAG_DB_PATH: /app/data/rag_index.db
+    # Match the desktop user's numeric IDs so a deliberately mounted private
+    # folder can stay private on the host. Set JAMES_UID/GID as shown in docs.
+    user: "${JAMES_UID:-1000}:${JAMES_GID:-1000}"
+    ports:
+      # Do not publish this file-capable service to the LAN by default.
+      - "127.0.0.1:${JAMES_PORT:-8000}:8000"
+    volumes:
+      # Persistent assistant data. Create these host directories yourself
+      # before starting Compose so Docker does not create root-owned folders.
+      - ./runtime/data:/app/data:rw
+      - ./runtime/history:/app/history:rw
+      - ./runtime/backups:/app/backups:rw
+      - ./runtime/output_files:/app/output_files:rw
+      # No personal folder is mounted by default. Add a narrow bind mount only
+      # after reading the "Indexing host files" section in DOCKER.md.
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    init: true
+    # No outbound internet route in the default offline profile. The host can
+    # still reach the published loopback port; URL ingestion and cloud mode
+    # require an explicit, reviewed network override.
+    networks:
+      - local_only
+
+networks:
+  local_only:
+    internal: true

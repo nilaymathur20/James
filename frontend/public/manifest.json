@@ -1,0 +1,16 @@
+{
+  "name": "James - Local AI Assistant",
+  "short_name": "James",
+  "description": "Privacy-first, local-first personal AI assistant",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#10151e",
+  "theme_color": "#10151e",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
