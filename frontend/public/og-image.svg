@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10151e"/>
+      <stop offset="100%" style="stop-color:#1a2332"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#557ee2"/>
+      <stop offset="100%" style="stop-color:#7158c9"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect x="40" y="40" width="1120" height="550" rx="16" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+  <text x="600" y="280" font-family="system-ui, -apple-system, sans-serif" font-size="72" font-weight="700" fill="#ffffff" text-anchor="middle">James</text>
+  <text x="600" y="350" font-family="system-ui, -apple-system, sans-serif" font-size="28" fill="#8b949e" text-anchor="middle">Local-first AI Assistant</text>
+  <text x="600" y="400" font-family="system-ui, -apple-system, sans-serif" font-size="18" fill="#58a6ff" text-anchor="middle">Privacy-first · Offline-ready · Your data stays local</text>
+  <g transform="translate(560, 440)">
+    <rect x="0" y="0" width="80" height="80" rx="12" fill="url(#accent)"/>
+    <path d="M40 15L15 30l25 15 25-15-25-15z" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M15 55l25 15 25-15" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M15 42l25 15 25-15" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terms and Conditions — James</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --bg: #0d1117; --surface: #161b22; --border: #30363d;
+            --text: #c9d1d9; --text-muted: #8b949e; --accent: #58a6ff;
+        }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            background: var(--bg); color: var(--text); line-height: 1.7; font-size: 16px;
+        }
+        .container { max-width: 720px; margin: 0 auto; padding: 3rem 1.5rem 6rem; }
+        header { border-bottom: 1px solid var(--border); padding-bottom: 2rem; margin-bottom: 3rem; }
+        h1 { font-size: 2rem; font-weight: 700; color: #fff; margin-bottom: 0.5rem; }
+        .last-updated { color: var(--text-muted); font-size: 0.875rem; }
+        h2 { font-size: 1.25rem; font-weight: 600; color: #fff; margin-top: 2.5rem; margin-bottom: 0.75rem; }
+        p { margin-bottom: 1rem; }
+        ul, ol { margin: 0 0 1rem 1.5rem; }
+        li { margin-bottom: 0.35rem; }
+        a { color: var(--accent); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .highlight { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 1rem 1.25rem; margin: 1.5rem 0; }
+        .highlight p:last-child { margin-bottom: 0; }
+        .highlight strong { color: #fff; }
+        footer { margin-top: 4rem; padding-top: 2rem; border-top: 1px solid var(--border); color: var(--text-muted); font-size: 0.875rem; }
+        @media (max-width: 600px) { .container { padding: 2rem 1rem 4rem; } h1 { font-size: 1.5rem; } h2 { font-size: 1.1rem; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Terms and Conditions</h1>
+            <p class="last-updated">Last updated: October 2, 2026</p>
+        </header>
+
+        <div class="highlight">
+            <p><strong>James is a local-first personal AI assistant.</strong> By using James, you agree to these terms. If you do not agree, do not use the software.</p>
+        </div>
+
+        <h2>1. Acceptance of Terms</h2>
+        <p>By installing, accessing, or using James ("the Software"), you agree to be bound by these Terms and Conditions. If you do not agree to these terms, do not use the Software.</p>
+
+        <h2>2. Description of Service</h2>
+        <p>James is a privacy-first, local-first personal AI assistant that runs on your local machine. It provides:</p>
+        <ul>
+            <li>Local file indexing and full-text search (SQLite FTS5)</li>
+            <li>Guarded file operations with proposals, backups, and undo</li>
+            <li>Optional AI chat via local models (llama.cpp) or cloud providers (Groq, OpenRouter, Gemini)</li>
+            <li>Local voice transcription (whisper.cpp) and text-to-speech (edge-tts)</li>
+            <li>Web search and page fetching with SSRF protections</li>
+            <li>Image generation via Pollinations.ai (zero-auth)</li>
+            <li>Optional P2P device pairing with PIN-based authentication</li>
+        </ul>
+
+        <h2>3. User Responsibilities</h2>
+        <p>You are responsible for:</p>
+        <ul>
+            <li><strong>Your data</strong> — James stores all data locally. You are responsible for backing up your own data.</li>
+            <li><strong>Your API keys</strong> — If you configure cloud providers, you are responsible for your API keys and any costs incurred.</li>
+            <li><strong>Your usage</strong> — You agree to use James in compliance with all applicable laws and regulations.</li>
+            <li><strong>Your security</strong> — James binds to localhost by default. If you expose it to a network, you are responsible for securing it.</li>
+        </ul>
+
+        <h2>4. Acceptable Use</h2>
+        <p>You agree not to use James to:</p>
+        <ul>
+            <li>Violate any applicable law or regulation</li>
+            <li>Infringe on intellectual property rights</li>
+            <li>Distribute malware, spam, or harmful content</li>
+            <li>Attempt to bypass security measures or access protected systems</li>
+            <li>Harass, threaten, or harm others</li>
+            <li>Generate content that is illegal, defamatory, or harmful</li>
+        </ul>
+
+        <h2>5. No Warranty</h2>
+        <p>THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</p>
+
+        <h2>6. Limitation of Liability</h2>
+        <p>Under no circumstances shall the authors or copyright holders be liable for any claim, damages, or other liability arising from the use of the Software. This includes, but is not limited to:</p>
+        <ul>
+            <li>Loss of data or backups</li>
+            <li>Unauthorized access to your system</li>
+            <li>Costs incurred from cloud API usage</li>
+            <li>Damage to files from edit operations</li>
+            <li>Service interruptions or data corruption</li>
+        </ul>
+
+        <h2>7. Third-Party Services</h2>
+        <p>James integrates with third-party services that are opt-in only:</p>
+        <ul>
+            <li><strong>Groq, OpenRouter, Gemini</strong> — cloud LLM providers. Your chat messages are sent to these providers only when you configure them.</li>
+            <li><strong>Pollinations.ai</strong> — zero-auth image generation. Your image prompts are sent to this service.</li>
+            <li><strong>DuckDuckGo</strong> — web search. Your search queries are sent to this service.</li>
+            <li><strong>edge-tts / Microsoft</strong> — text-to-speech. Your text is sent to this service for synthesis.</li>
+        </ul>
+        <p>Each third-party service has its own privacy policy and terms of service. You are responsible for reviewing and agreeing to their terms.</p>
+
+        <h2>8. Open Source</h2>
+        <p>James is open-source software. You may inspect, modify, and distribute the source code in accordance with the project's license. The source code is available at the project repository.</p>
+
+        <h2>9. Changes to These Terms</h2>
+        <p>These terms may be updated from time to time. The "last updated" date above reflects the most recent revision. Continued use of the Software after changes constitutes acceptance of the new terms.</p>
+
+        <h2>10. Contact</h2>
+        <p>For questions about these terms, open an issue on the project repository.</p>
+
+        <footer>
+            <p>&copy; 2026 James. All rights reserved. <a href="/privacy.html">Privacy Policy</a> · <a href="/terms.html">Terms & Conditions</a></p>
+        </footer>
+    </div>
+</body>
+</html>
