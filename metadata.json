@@ -1,0 +1,6 @@
+{
+  "name": "JAMES",
+  "description": "A private AI chat assistant powered by Gemini 3.8 Flash with live token counting, configurable response limits, and browser-only storage.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
