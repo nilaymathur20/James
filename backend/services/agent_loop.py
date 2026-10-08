@@ -335,18 +335,32 @@ class ReActAgent:
 
             try:
                 if token_callback:
-                    llm_response = await _stream_chat_completion_async(
-                        conversation_history,
-                        system_prompt=system_prompt,
-                        max_tokens=1024,
-                        token_callback=token_callback,
+                    llm_response = await asyncio.wait_for(
+                        _stream_chat_completion_async(
+                            conversation_history,
+                            system_prompt=system_prompt,
+                            max_tokens=1024,
+                            token_callback=token_callback,
+                        ),
+                        timeout=STEP_TIMEOUT,
                     )
                 else:
-                    llm_response = await _generate_chat_completion_async(
-                        conversation_history,
-                        system_prompt=system_prompt,
-                        max_tokens=1024,
+                    llm_response = await asyncio.wait_for(
+                        _generate_chat_completion_async(
+                            conversation_history,
+                            system_prompt=system_prompt,
+                            max_tokens=1024,
+                        ),
+                        timeout=STEP_TIMEOUT,
                     )
+            except asyncio.TimeoutError:
+                logger.error(f"ReAct step {step_num} exceeded {STEP_TIMEOUT}s budget.")
+                emit({
+                    "event_type": "error",
+                    "message": f"Step {step_num} exceeded the {STEP_TIMEOUT}s time budget. Try a shorter query.",
+                })
+                final_answer = f"I ran out of time on step {step_num}. Please try a shorter query."
+                break
             except LLMError as err:
                 logger.error(f"ReAct LLM error on step {step_num}: {err.message}")
                 emit({"event_type": "error", "message": err.message})
@@ -538,6 +552,9 @@ async def _execute_single_tool_call(
         else:
             tool_result = registry.execute(tool_name, tool_args, context)
             observation = json.dumps(tool_result, ensure_ascii=False)
+    else:
+        tool_result = registry.execute(tool_name, tool_args, context)
+        observation = json.dumps(tool_result, ensure_ascii=False)
 
     step_record.observation = observation
     trajectory.append(step_record)

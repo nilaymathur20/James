@@ -20,7 +20,7 @@ from ..services.image_generator import generate_image
 from ..services.llm import generate_chat_completion, configured_provider
 from ..services.retrieval import build_retrieval_response, retrieve_matches, serialize_match
 from ..services.scraper import ScrapeError, scrape_page
-from ..services.browser_tool import web_search
+from ..services.browser_tool import web_search, image_search
 from ..services.tts_engine import synthesize_speech, DEFAULT_VOICE
 from ..services.media_generator import AUDIO_DIR, _ensure_dirs
 
@@ -130,13 +130,23 @@ def handle_command(
         _emit(progress_callback, "assistant_status", "searching", "Searching the web.")
         result = web_search(argument.strip())
         if "error" in result:
-            raise AssistantFlowError(result["error"], status_code=502)
+            # Return friendly message instead of hard error — user can refine query
+            return {
+                "kind": "web_search",
+                "response": result.get("error", "Search failed. Try a different query."),
+                "results": [],
+                "file_candidates": [],
+                "data": result,
+                "images": [],
+            }
+        images = image_search(argument.strip(), max_images=3)
         return {
             "kind": "web_search",
             "response": result.get("results_summary", "No results found."),
             "results": [],
             "file_candidates": [],
             "data": result,
+            "images": images,
         }
 
     # Music stub (no backend)
@@ -583,14 +593,46 @@ def _handle_music_stub(argument: str) -> dict[str, Any]:
     if "error" in result:
         backend = result.get("backend", "unknown")
         error_msg = result.get("error", "Unknown error")
+        needs_key = result.get("needs_key", False)
+        needs_install = result.get("needs_install", False)
+
+        # Build a helpful error with specific fix suggestions
+        fix_suggestions = []
+        if backend == "hf-spaces" and "quota" in error_msg.lower():
+            fix_suggestions.append(
+                "HF Spaces ZeroGPU quota exceeded. Wait ~24h or set HF_TOKEN for higher quota."
+            )
+            fix_suggestions.append(
+                "Or set OPENROUTER_API_KEY for OpenRouter Lyria (preferred)."
+            )
+        elif backend == "hf-spaces":
+            fix_suggestions.append(
+                "HF Spaces error. Set HF_TOKEN for authenticated access (higher quota)."
+            )
+            fix_suggestions.append(
+                "Or set OPENROUTER_API_KEY for OpenRouter Lyria."
+            )
+        elif backend == "openrouter":
+            fix_suggestions.append(
+                "Set OPENROUTER_API_KEY in backend/.env for OpenRouter Lyria."
+            )
+            fix_suggestions.append(
+                "Or set HF_TOKEN for free HF Spaces generation."
+            )
+        else:
+            fix_suggestions.append(
+                "Set OPENROUTER_API_KEY for OpenRouter Lyria (preferred)."
+            )
+            fix_suggestions.append(
+                "Or set HF_TOKEN for HuggingFace Spaces (free, rate-limited)."
+            )
+
         response = (
             f"Music generation failed ({backend}): {error_msg}\n"
-            "Configure an API key to enable cloud music generation:\n"
-            "  OPENROUTER_API_KEY — for OpenRouter Lyria (preferred)\n"
-            "  Or leave blank to use the free HF Spaces backend (rate-limited)."
+            + "\n".join(f"  • {s}" for s in fix_suggestions)
         )
-        if result.get("needs_install"):
-            response += "\nInstall gradio_client: pip install gradio_client"
+        if needs_install:
+            response += "\n  • Install gradio_client: pip install gradio_client"
         return {
             "kind": "music_stub",
             "response": response,

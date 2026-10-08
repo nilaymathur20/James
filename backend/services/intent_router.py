@@ -53,7 +53,7 @@ def detect_intent(text: str) -> AssistantIntent:
         if verb == "audio":
             return AssistantIntent("generate_audio", argument)
         if verb == "web":
-            return AssistantIntent("scrape_web", argument)
+            return AssistantIntent("web_search", argument)
         if verb == "s":
             return AssistantIntent("web_search", argument)
         if verb == "music":
@@ -107,7 +107,7 @@ def command_help() -> str:
         "• index ~/Documents — approve and index a local folder\n"
         "• index my projects folder — use a common folder alias\n"
         "• index https://example.com/docs — index a web page into RAG\n"
-        "• web https://example.com — fetch readable text from a web page\n"
+        "• web <question> — search the web for answers and images\n"
         "• s <question> — search the web for answers and URLs\n"
         "• music <prompt> — generate music (e.g. music lofi chill beat)\n"
         "• sound <effect> — sound effects via HF Spaces\n"
