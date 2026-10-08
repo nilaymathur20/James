@@ -1,0 +1,68 @@
+# Version-control and local configuration
+.git/
+.github/
+.env
+.env.*
+!*.env.example
+backend/.env
+
+# Local assistant data: never copy indexed content, history, backups, or audit
+# metadata into a Docker build context or image layer.
+data/
+history/
+backups/
+output_files/
+runtime/
+*.db
+*.sqlite
+*.sqlite3
+*.db-shm
+*.db-wal
+
+# Local models and voice models are mounted deliberately when needed, never
+# baked into the application image by accident.
+models/
+*.gguf
+*.bin
+*.onnx
+
+# Language/tooling output
+.venv/
+backend/.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage/
+build/
+dist/
+frontend/dist/
+James/dist-electron/
+frontend/node_modules/
+James/node_modules/
+mobile/node_modules/
+node_modules/
+.npm/
+.cache/
+.oxlintrc.json
+.expo/
+
+# Test files not needed in the production image
+backend/tests/
+
+# Desktop and mobile — not part of the Docker backend image
+James/
+mobile/
+
+# Documentation not needed at runtime (keep AGENTS.md if desired)
+# react-native-ui-ux-plan.md
+# IMPLEMENTATION_PLAN.md
+
+# Editor and OS files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo

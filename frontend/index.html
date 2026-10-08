@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#10151e" />
+    <meta name="description" content="James — a privacy-first, local-first personal AI assistant. Chat, search, and manage your files locally with optional cloud AI providers." />
+    <meta name="keywords" content="AI assistant, local-first, privacy, RAG, offline, personal assistant" />
+    <meta name="author" content="James" />
+    <meta name="robots" content="index, follow" />
+
+    <!-- Open Graph / Social Preview -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="James — Local-first AI Assistant" />
+    <meta property="og:description" content="Privacy-first personal AI assistant. Your data stays on your machine." />
+    <meta property="og:image" content="/og-image.svg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="James — Local-first AI Assistant" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="James — Local-first AI Assistant" />
+    <meta name="twitter:description" content="Privacy-first personal AI assistant. Your data stays on your machine." />
+    <meta name="twitter:image" content="/og-image.svg" />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/favicon.svg" />
+
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- Preconnect to API -->
+    <link rel="preconnect" href="http://127.0.0.1:8000" />
+
+    <!-- Analytics: privacy-friendly, local-only (no external calls) -->
+    <script>
+      // Minimal analytics: tracks page views locally, no external calls
+      (function() {
+        const data = {
+          page: window.location.pathname,
+          referrer: document.referrer || 'direct',
+          timestamp: new Date().toISOString(),
+          userAgent: navigator.userAgent,
+          screenSize: `${window.innerWidth}x${window.innerHeight}`,
+        };
+        // Store in localStorage for local insights only
+        const events = JSON.parse(localStorage.getItem('james_analytics') || '[]');
+        events.push(data);
+        // Keep only last 100 events
+        if (events.length > 100) events.shift();
+        localStorage.setItem('james_analytics', JSON.stringify(events));
+      })();
+    </script>
+
+    <title>James · Local-first AI Assistant</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

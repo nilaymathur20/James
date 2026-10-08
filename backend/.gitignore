@@ -1,0 +1,18 @@
+# Local Python/Node tooling
+.venv/
+__pycache__/
+*.py[cod]
+frontend/node_modules/
+frontend/dist/
+
+# Local assistant data and credentials
+.env
+backend/.env
+data/
+history/
+backups/
+output_files/
+
+# Runtime artifacts
+*.db-shm
+*.db-wal

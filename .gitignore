@@ -1,0 +1,56 @@
+# Python
+.venv/
+backend/.venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.coverage
+coverage/
+
+# Environment
+.env
+backend/.env
+
+# Node
+node_modules/
+frontend/node_modules/
+James/node_modules/
+mobile/node_modules/
+frontend/dist/
+James/dist-electron/
+dist/
+build/
+
+# Database and runtime data
+*.db
+*.sqlite
+*.sqlite3
+*.db-shm
+*.db-wal
+data/
+runtime/
+history/
+backups/
+output_files/
+data/
+
+# Tooling
+.oxlintrc.json
+.expo/
+.mypy_cache/
+.ruff_cache/
+.npm/
+.cache/
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo*.hprof
+*.heapdump
+android/*commandlinetools*.zip
+android/*gradle*.zip
+*.hprof
+android/commandlinetools-win.zip
+android/gradle/wrapper/gradle-8.11.1-bin.zip
