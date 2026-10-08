@@ -1,0 +1,19 @@
+# Minimal always-on backend dependencies.
+# This keeps normal local search/indexing lightweight. Optional integrations are
+# separated into requirements-voice.txt and requirements-extras.txt.
+fastapi>=0.110
+uvicorn[standard]>=0.27
+python-multipart>=0.0.9
+numpy>=1.26
+requests>=2.31
+beautifulsoup4>=4.12
+httpx>=0.27
+PyAutoGUI>=0.9.54
+selenium>=4.18
+edge-tts>=6.1
+ddgs>=1.0
+gradio_client>=1.0
+PyMuPDF>=1.23.0
+pytesseract>=0.3.10
+Pillow>=10.0.0
+langdetect>=1.0.9

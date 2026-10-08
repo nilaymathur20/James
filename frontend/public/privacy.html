@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy — James</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg: #0d1117;
+            --surface: #161b22;
+            --border: #30363d;
+            --text: #c9d1d9;
+            --text-muted: #8b949e;
+            --accent: #58a6ff;
+            --accent-dim: #1f6feb;
+        }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.7;
+            font-size: 16px;
+        }
+
+        .container {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 3rem 1.5rem 6rem;
+        }
+
+        header {
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 0.5rem;
+        }
+
+        .last-updated {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+
+        h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #fff;
+            margin-top: 2.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        p {
+            margin-bottom: 1rem;
+            color: var(--text);
+        }
+
+        ul, ol {
+            margin: 0 0 1rem 1.5rem;
+            color: var(--text);
+        }
+
+        li {
+            margin-bottom: 0.35rem;
+        }
+
+        a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        .highlight {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 1rem 1.25rem;
+            margin: 1.5rem 0;
+        }
+
+        .highlight p:last-child {
+            margin-bottom: 0;
+        }
+
+        .highlight strong {
+            color: #fff;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0 1.5rem;
+            font-size: 0.9rem;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 0.6rem 0.75rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            color: #fff;
+            font-weight: 600;
+        }
+
+        td {
+            color: var(--text-muted);
+        }
+
+        td:first-child {
+            color: var(--text);
+        }
+
+        footer {
+            margin-top: 4rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border);
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+
+        @media (max-width: 600px) {
+            .container { padding: 2rem 1rem 4rem; }
+            h1 { font-size: 1.5rem; }
+            h2 { font-size: 1.1rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Privacy Policy</h1>
+            <p class="last-updated">Last updated: October 2, 2026</p>
+        </header>
+
+        <div class="highlight">
+            <p><strong>James is a local-first personal AI assistant.</strong> Your data stays on your machine. This policy explains what data James handles, where it goes, and the few cases where optional cloud services are used only when you explicitly enable them.</p>
+        </div>
+
+        <h2>1. Local Data Storage</h2>
+        <p>James stores all persistent data locally on your device:</p>
+        <ul>
+            <li><strong>RAG index</strong> — a SQLite FTS5 database (<code>data/rag_index.db</code>) containing indexed text chunks from files and web pages you choose to index.</li>
+            <li><strong>File catalog</strong> — metadata (name, path, size, timestamps) for indexed and discoverable files. File contents are never stored in the catalog.</li>
+            <li><strong>Edit proposals &amp; backups</strong> — pending edit proposals and backup copies of files before edits are applied. Backups are stored in <code>backups/</code> with owner-only permissions.</li>
+            <li><strong>Chat history</strong> — if you opt in per-request (<code>use_history: true</code>) and the feature is not disabled globally, conversation prompts and responses are saved as Markdown files in <code>history/</code>.</li>
+            <li><strong>Audit log</strong> — content-free records of file operations (preview, open, edit proposed/applied/undone) stored in the same SQLite database.</li>
+            <li><strong>Trusted devices</strong> — device pairing metadata for P2P features, stored in the same SQLite database.</li>
+        </ul>
+        <p>All local files are created with <code>0600</code> permissions (owner read/write only) and directories with <code>0700</code>.</p>
+
+        <h2>2. Cloud Services (Opt-In Only)</h2>
+        <p>James operates fully offline by default. Cloud services are used <em>only</em> when you explicitly configure them in <code>backend/.env</code>:</p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Service</th>
+                    <th>Env Variable</th>
+                    <th>What Is Sent</th>
+                    <th>When</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>llama.cpp (local)</td>
+                    <td><code>AI_MODE=local</code></td>
+                    <td>Nothing — runs on your machine</td>
+                    <td>Only if you run a local model server</td>
+                </tr>
+                <tr>
+                    <td>Groq</td>
+                    <td><code>GROQ_API_KEY</code></td>
+                    <td>Chat messages, system prompt, tool schemas</td>
+                    <td>Each LLM request</td>
+                </tr>
+                <tr>
+                    <td>OpenRouter</td>
+                    <td><code>OPENROUTER_API_KEY</code></td>
+                    <td>Chat messages, system prompt, tool schemas</td>
+                    <td>Each LLM request</td>
+                </tr>
+                <tr>
+                    <td>Google Gemini</td>
+                    <td><code>GEMINI_API_KEY</code></td>
+                    <td>Chat messages, system prompt, tool schemas, image data (vision)</td>
+                    <td>Each LLM/vision request</td>
+                </tr>
+                <tr>
+                    <td>Pollinations.ai</td>
+                    <td>(none — zero-auth)</td>
+                    <td>Image generation prompt</td>
+                    <td>Each image generation</td>
+                </tr>
+                <tr>
+                    <td>DuckDuckGo</td>
+                    <td>(none)</td>
+                    <td>Search query</td>
+                    <td>Each web search</td>
+                </tr>
+                <tr>
+                    <td>edge-tts</td>
+                    <td>(none — Microsoft)</td>
+                    <td>Text to be synthesized</td>
+                    <td>Each TTS request</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <p><strong>API keys are never logged, never stored in the database, and never sent to any provider other than the one they belong to.</strong> The Gemini API key is sent via the <code>x-goog-api-key</code> header, not in URL query parameters.</p>
+
+        <h2>3. Data We Never Collect</h2>
+        <ul>
+            <li>No analytics, telemetry, or usage tracking.</li>
+            <li>No account creation or user identification.</li>
+            <li>No advertising or marketing cookies.</li>
+            <li>No data sharing with third parties.</li>
+            <li>No cloud sync — everything stays on your device.</li>
+        </ul>
+
+        <h2>4. File Operations &amp; Safety</h2>
+        <p>James can perform guarded file operations on your local machine. All mutating operations follow a strict safety model:</p>
+        <ul>
+            <li><strong>Preview</strong> — reads file content after validating the file is within an approved index root and passes policy checks.</li>
+            <li><strong>Open</strong> — opens a file with the OS default application only after explicit user confirmation. Executable and script file types are never opened.</li>
+            <li><strong>Edit</strong> — creates a diff proposal that must be explicitly confirmed before any file is modified. A backup is created before every edit. Edits can be undone from the backup.</li>
+            <li><strong>Indexing</strong> — scans user-approved folders. Protected directories (system paths, credential folders, hidden directories) are never indexed. Sensitive files (<code>.env</code>, keys, tokens) are never read or indexed.</li>
+        </ul>
+
+        <h2>5. Network &amp; Access</h2>
+        <ul>
+            <li>The backend binds to <code>127.0.0.1:8000</code> (loopback only) by default. It is not exposed to the network.</li>
+            <li>CORS allows only <code>localhost:5173</code> and <code>localhost:8081</code> (local dev frontend).</li>
+            <li>WebSocket connections require an allowed origin header.</li>
+            <li>SSRF protections block requests to private IPs, loopback addresses, and cloud metadata endpoints.</li>
+        </ul>
+
+        <h2>6. Voice &amp; Transcription</h2>
+        <p>Voice transcription uses <strong>whisper.cpp</strong> running locally via subprocess. Audio is converted to 16 kHz mono WAV using ffmpeg and processed entirely on your machine. No audio is sent to any server.</p>
+
+        <h2>7. P2P &amp; Device Pairing</h2>
+        <p>Device pairing uses a short-lived, single-use PIN (5-minute expiry). Paired devices are stored in a local trust store. The P2P proxy only routes to addresses stored at pairing time — it never constructs URLs from user-supplied device IDs.</p>
+
+        <h2>8. Your Controls</h2>
+        <ul>
+            <li><strong>Disable chat history</strong> — set <code>CHAT_HISTORY_ENABLED=false</code> in <code>backend/.env</code>.</li>
+            <li><strong>Disable auto-indexing</strong> — set <code>AUTO_INDEX_ENABLED=false</code>.</li>
+            <li><strong>Stay offline</strong> — set <code>AI_MODE=offline</code> (the default). No cloud provider is contacted.</li>
+            <li><strong>Delete your data</strong> — delete <code>data/rag_index.db</code>, <code>history/</code>, <code>backups/</code>, and <code>output_files/</code>.</li>
+            <li><strong>Revoke device trust</strong> — use <code>POST /api/devices/revoke/{device_id}</code>.</li>
+        </ul>
+
+        <h2>9. Limitations</h2>
+        <p>James is a local tool, not a hosted service. We cannot:</p>
+        <ul>
+            <li>Access your data — it never leaves your machine (except the opt-in cloud calls above).</li>
+            <li>Recover lost backups or history — they are local files.</li>
+            <li>Guarantee availability — James runs on your hardware.</li>
+        </ul>
+
+        <h2>10. Changes to This Policy</h2>
+        <p>This policy may be updated as James evolves. The "last updated" date above reflects the most recent revision. Significant changes will be noted in the project changelog.</p>
+
+        <h2>11. Contact</h2>
+        <p>For questions about this policy or James's privacy practices, open an issue on the project repository.</p>
+
+        <footer>
+            <p>&copy; 2026 James — Local-first personal AI assistant. Your data, your machine, your control.</p>
+        </footer>
+    </div>
+</body>
+</html>

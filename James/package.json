@@ -1,0 +1,49 @@
+{
+  "name": "james",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Electron desktop wrapper for James local AI assistant",
+  "main": "main.js",
+  "scripts": {
+    "dev": "electron .",
+    "electron:dev": "concurrently -k \"cd ../frontend && npm run dev\" \"wait-on http://localhost:5173 && electron .\"",
+    "build": "cd ../frontend && npm run build",
+    "electron:build": "cd ../frontend && npm run build && electron-builder"
+  },
+  "build": {
+    "appId": "ai.james.assistant",
+    "productName": "James",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "package.json"
+    ],
+    "extraFiles": [
+      {
+        "from": "../../frontend/dist",
+        "to": "frontend"
+      }
+    ],
+    "linux": {
+      "target": "AppImage"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "mac": {
+      "target": "dmg"
+    }
+  },
+  "dependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^24.13.0",
+    "concurrently": "^10.0.5",
+    "wait-on": "^8.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0"
+  }
+}
