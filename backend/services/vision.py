@@ -24,8 +24,8 @@ def analyze_image_with_vision(image_data_base64: str, prompt: str = "Analyze thi
     api_key = _env("GEMINI_API_KEY")
     if not api_key:
         return {
-            "error": "Gemini API key is required for vision reasoning. Configure GEMINI_API_KEY in settings.",
-            "response": "Vision capabilities require a Gemini API key.",
+            "error": "Vision reasoning requires an API key. Configure it in settings.",
+            "response": "Vision capabilities require an API key.",
         }
 
     # Extract mime type and clean base64 data

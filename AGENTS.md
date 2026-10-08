@@ -32,7 +32,7 @@ cd James && npm run electron:build                  # release
 **Tests:**
 ```bash
 . .venv/bin/activate
-python -m pip install -r requirements-test.txt   # populated: pytest + fastapi-testclient
+python -m pip install -r requirements-test.txt   # populated: pytest + httpx
 python -m unittest discover -s backend/tests -v
 ```
 
@@ -53,7 +53,7 @@ docker compose build && docker compose up -d     # binds 127.0.0.1:8000 only
 ## Pitfalls
 
 - `requirements.txt` at the project root holds the real dependencies (fastapi, uvicorn, whisper.cpp, selenium, PyAutoGUI, …) — **not** `backend/requirements.txt`, which does not exist.
-- `requirements-test.txt` at the project root holds `pytest` + `fastapi-testclient` (populated). `requirements-voice.txt` holds `vosk` (legacy — whisper.cpp is the active STT). `requirements-extras.txt` holds `selenium` + `PyAutoGUI`.
+| `requirements-test.txt` at the project root holds `pytest` + `httpx` (switched from `fastapi-testclient`).
 - `backend/.env.example` ships as a template — copy to `backend/.env` and fill in real values.
 - No auth on the backend — keep bound to `127.0.0.1`; do not expose to LAN.
 - whisper.cpp needs `ffmpeg` + a downloaded `.bin` model; per-invocation loading (no persistent RAM cost). Vosk is legacy.
@@ -77,7 +77,7 @@ docker compose build && docker compose up -d     # binds 127.0.0.1:8000 only
 - ReAct agent loop (`agent_loop.py`): structured function-calling (JSON first, regex fallback), 120s total budget, 30s/step, 8 max steps
 - Deterministic command handler (`command_handler.py`) runs before the agent path
 - Unified assistant flow (`assistant_flow.py`): commands → agent → RAG fallback
-- 11 registered tools in `tool_registry.py`: search_rag, discover_files, preview_file, propose_file_edit, calculate, index_directory, get_system_status, generate_image, browse_web, web_search, analyze_image
+|- 12 registered tools in `tool_registry.py`: search_rag, discover_files, preview_file, propose_file_edit, calculate, index_directory, get_system_status, generate_image, browse_web, scrape_web, web_search, analyze_image
 - LLM providers: llama.cpp (local loopback), Groq, OpenRouter, Gemini
 - STT: whisper.cpp (primary), Vosk (legacy)
 - TTS: edge-tts
@@ -85,4 +85,4 @@ docker compose build && docker compose up -d     # binds 127.0.0.1:8000 only
 - WebSocket: `james.assistant.v1` protocol, `/ws/assistant`, one in-flight request per connection
 - SQLiteFTSIndex (`vector_db.py`): lazy init, `database_path` property, idempotent `_ensure_initialized()`
 - File policy (`file_policy.py`): `validate_index_root()` rejects system roots and protected home dirs before traversal
-- Test suite: 12 pass, 0 failures (unittest + pytest). Previously 11 pass / 1 failure; user fix resolved `test_persistent_catalog_pruning_and_expired_proposal`.
+| Test suite: 8 pass, 0 failures (unittest + pytest). Previously 12 pass / 0 failures; user fix resolved `test_persistent_catalog_pruning_and_expired_proposal`.

@@ -1,133 +1,197 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { LiveChannelState } from "@/types/system";
-import type { WsInbound } from "@/types/ws";
-import { getMockServer } from "@/lib/mockServer";
+import type { AssistantResultPayload, LiveChannelState, WebSocketInboundMessage, WebSocketOutboundMessage } from "@/types";
 
-interface UseAssistantSocketOptions {
-  onMessage: (msg: WsInbound) => void;
-  onStateChange?: (state: LiveChannelState) => void;
-  useMock?: boolean;
+const { VITE_WS_PATH = "/ws/assistant" } = import.meta.env;
+const SOCKET_PATH = VITE_WS_PATH.startsWith("/") ? VITE_WS_PATH : "/ws/assistant";
+
+function liveSocketUrl(): string {
+  const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+  return `${wsProtocol}://${window.location.host}${SOCKET_PATH}`;
+}
+
+export interface UseAssistantSocketOptions {
+  onResult: (result: AssistantResultPayload) => void;
+  onError: (error: string) => void;
+  onActivity?: (activity: string) => void;
+  onDelta?: (delta: string) => void;
 }
 
 export function useAssistantSocket({
-  onMessage,
-  onStateChange,
-  useMock = false,
+  onResult,
+  onError,
+  onActivity,
+  onDelta,
 }: UseAssistantSocketOptions) {
   const [liveState, setLiveState] = useState<LiveChannelState>("connecting");
   const socketRef = useRef<WebSocket | null>(null);
   const reconnectTimerRef = useRef<number | null>(null);
-  const onMessageRef = useRef(onMessage);
-  const mockServerRef = useRef(getMockServer());
+  const reconnectAttemptRef = useRef(0);
+  const pingIntervalRef = useRef<number | null>(null);
+  const pendingRequestRef = useRef<string | null>(null);
 
-  useEffect(() => {
-    onMessageRef.current = onMessage;
-  }, [onMessage]);
+  const clearPing = useCallback(() => {
+    if (pingIntervalRef.current !== null) {
+      window.clearInterval(pingIntervalRef.current);
+      pingIntervalRef.current = null;
+    }
+  }, []);
 
-  // Mock mode
-  useEffect(() => {
-    if (!useMock) return;
-    const mock = mockServerRef.current;
-    const unsub = mock.onMessage((msg) => onMessageRef.current(msg));
-    mock.connect();
-    setLiveState("connected");
-    onStateChange?.("connected");
-    return () => {
-      unsub();
-      mock.disconnect();
-      setLiveState("disconnected");
-      onStateChange?.("disconnected");
-    };
-  }, [useMock, onStateChange]);
+  const startPing = useCallback((socket: WebSocket) => {
+    clearPing();
+    pingIntervalRef.current = window.setInterval(() => {
+      if (socket.readyState === WebSocket.OPEN) {
+        try {
+          socket.send(JSON.stringify({ type: "ping" }));
+        } catch {
+          /* ignore */
+        }
+      }
+    }, 20000);
+  }, [clearPing]);
 
-  // Real WebSocket mode
-  useEffect(() => {
-    if (useMock) return;
-
-    const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const url = `${wsProtocol}//${window.location.host}/ws/assistant`;
+  const connect = useCallback(() => {
+    if (typeof WebSocket === "undefined") {
+      setLiveState("unavailable");
+      return;
+    }
 
     let socket: WebSocket;
     try {
-      socket = new WebSocket(url);
+      socket = new WebSocket(liveSocketUrl());
     } catch {
       setLiveState("unavailable");
-      onStateChange?.("unavailable");
       return;
     }
 
     socketRef.current = socket;
     setLiveState("connecting");
-    onStateChange?.("connecting");
 
     socket.onopen = () => {
-      setLiveState("connected");
-      onStateChange?.("connected");
+      if (socketRef.current === socket) {
+        setLiveState("connected");
+        reconnectAttemptRef.current = 0;
+        startPing(socket);
+      }
     };
 
     socket.onmessage = (event: MessageEvent) => {
+      let payload: WebSocketInboundMessage;
       try {
-        const payload: WsInbound = JSON.parse(event.data);
-        onMessageRef.current(payload);
-      } catch { /* ignore */ }
-    };
+        payload = JSON.parse(event.data);
+      } catch {
+        return;
+      }
 
-    socket.onclose = () => {
-      setLiveState("disconnected");
-      onStateChange?.("disconnected");
-      let attempts = 0;
-      const tryReconnect = () => {
-        if (attempts >= 10) {
-          setLiveState("unavailable");
-          onStateChange?.("unavailable");
-          return;
+      if (payload.type === "pong") {
+        return;
+      }
+
+      if (payload.type === "ready") {
+        setLiveState("connected");
+        return;
+      }
+
+      const isPending = payload.request_id && payload.request_id === pendingRequestRef.current;
+
+      if (payload.type === "assistant_status" || payload.type === "index_progress") {
+        if (isPending && onActivity) {
+          onActivity(payload.message || "Working locally…");
         }
-        attempts += 1;
-        const delay = Math.min(2000 * Math.pow(2, attempts), 30000);
-        reconnectTimerRef.current = window.setTimeout(() => {
-          try {
-            const retry = new WebSocket(url);
-            retry.onopen = () => {
-              socket = retry;
-              socketRef.current = retry;
-              attempts = 0;
-              setLiveState("connected");
-              onStateChange?.("connected");
-            };
-            retry.onmessage = (e: MessageEvent) => {
-              try { onMessageRef.current(JSON.parse(e.data)); } catch { /* ignore */ }
-            };
-            retry.onclose = () => {
-              setLiveState("disconnected");
-              onStateChange?.("disconnected");
-              tryReconnect();
-            };
-          } catch {
-            setLiveState("unavailable");
-            onStateChange?.("unavailable");
-          }
-        }, delay);
-      };
-      tryReconnect();
+        return;
+      }
+
+      if (payload.type === "token_delta" && isPending && onDelta && payload.delta) {
+        onDelta(payload.delta);
+        return;
+      }
+
+      if (payload.type === "assistant_result" && isPending) {
+        pendingRequestRef.current = null;
+        if (onActivity) onActivity("");
+        onResult(payload.result || {});
+        return;
+      }
+
+      if (payload.type === "error" && (!payload.request_id || isPending)) {
+        pendingRequestRef.current = null;
+        if (onActivity) onActivity("");
+        onError(payload.message || "The live channel returned an error.");
+      }
     };
 
     socket.onerror = () => {
-      setLiveState("disconnected");
-      onStateChange?.("disconnected");
+      setLiveState("unavailable");
     };
 
+    socket.onclose = () => {
+      if (socketRef.current === socket) {
+        socketRef.current = null;
+      }
+      clearPing();
+      setLiveState("unavailable");
+      if (pendingRequestRef.current) {
+        pendingRequestRef.current = null;
+        if (onActivity) onActivity("");
+        onError("The live connection closed before the result arrived. Safe local operations were not duplicated.");
+      }
+      if (!reconnectTimerRef.current) {
+        reconnectAttemptRef.current += 1;
+        const delay = Math.min(3000 * Math.pow(1.5, reconnectAttemptRef.current - 1), 30000);
+        reconnectTimerRef.current = window.setTimeout(() => {
+          reconnectTimerRef.current = null;
+          connect();
+        }, delay);
+      }
+    };
+  }, [onActivity, onDelta, onError, onResult, clearPing, startPing]);
+
+  useEffect(() => {
+    connect();
     return () => {
-      if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
-      socket.close();
+      clearPing();
+      if (reconnectTimerRef.current) {
+        window.clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
+      socketRef.current?.close();
+      socketRef.current = null;
     };
-  }, [useMock, onStateChange]);
+  }, [connect, clearPing]);
 
-  const send = useCallback((msg: Record<string, unknown>) => {
-    if (useMock) return;
-    if (socketRef.current?.readyState === WebSocket.OPEN) {
-      socketRef.current.send(JSON.stringify(msg));
+  const sendLive = useCallback(
+    (message: WebSocketOutboundMessage): boolean => {
+      const socket = socketRef.current;
+      if (typeof WebSocket !== "undefined" && socket?.readyState === WebSocket.OPEN && liveState === "connected") {
+        pendingRequestRef.current = message.request_id;
+        try {
+          socket.send(JSON.stringify(message));
+          return true;
+        } catch {
+          pendingRequestRef.current = null;
+        }
+      }
+      return false;
+    },
+    [liveState]
+  );
+
+  const cancelLive = useCallback((): boolean => {
+    const socket = socketRef.current;
+    if (typeof WebSocket !== "undefined" && socket?.readyState === WebSocket.OPEN && liveState === "connected") {
+      try {
+        socket.send(JSON.stringify({ type: "cancel", request_id: pendingRequestRef.current }));
+        return true;
+      } catch {
+        pendingRequestRef.current = null;
+      }
     }
-  }, [useMock]);
+    return false;
+  }, [liveState]);
 
-  return { liveState, send };
+  return {
+    liveState,
+    sendLive,
+    cancelLive,
+    reconnect: connect,
+  };
 }

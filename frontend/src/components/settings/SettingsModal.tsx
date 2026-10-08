@@ -1,7 +1,8 @@
 import { useState } from "react";
-import type { PrivacyMode } from "@/types";
+import type { PrivacyMode, ServiceStatus } from "@/types";
 import { DeviceManager } from "./DeviceManager";
 import { PrivacyToggle } from "./PrivacyToggle";
+import { ProviderSetup } from "./ProviderSetup";
 import { CloseIcon } from "@/icons";
 
 interface SettingsModalProps {
@@ -10,6 +11,8 @@ interface SettingsModalProps {
   currentMode: PrivacyMode;
   onChangeMode: (mode: PrivacyMode) => void;
   onSaveKeys: (keys: Record<string, string>) => Promise<void>;
+  service: ServiceStatus;
+  onModeSwitch?: () => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -18,6 +21,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   currentMode,
   onChangeMode,
   onSaveKeys,
+  service,
+  onModeSwitch,
 }) => {
   const [activeTab, setActiveTab] = useState<"general" | "devices">("general");
   const [groqKey, setGroqKey] = useState("");
@@ -83,6 +88,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 currentMode={currentMode}
                 onChangeMode={onChangeMode}
               />
+
+              <ProviderSetup service={service} onModeSwitch={onModeSwitch} />
 
               <form onSubmit={handleSave} className="setting-section">
                 <h3>Bring Your Own Key (BYOK)</h3>

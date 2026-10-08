@@ -52,6 +52,7 @@ export interface ChatMessage {
   toolProposals?: ToolCallProposal[];
   mediaType?: "image" | "audio" | "video" | "file";
   mediaUrl?: string;
+  data?: Record<string, unknown>;
 }
 
 export interface AssistantResultPayload {
@@ -66,6 +67,7 @@ export interface AssistantResultPayload {
   thought?: string;
   media_url?: string;
   media_type?: "image" | "audio" | "video" | "file";
+  images?: Array<{ thumbnail?: string; url?: string; title?: string }>;
 }
 
 export interface ImageGenerationResult {

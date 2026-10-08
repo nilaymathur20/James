@@ -61,7 +61,9 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
 
         <ThoughtStream steps={message.steps} thought={message.thought} />
 
-        {message.content && <p>{message.content}</p>}
+        {message.content && (
+          <p dangerouslySetInnerHTML={{ __html: message.content }} />
+        )}
 
         {message.mediaUrl && message.mediaType === "image" && (
           <div className="message-media-image">
@@ -84,6 +86,21 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         {message.providerError && (
           <p className="provider-note">Generation note — no cloud fallback: {message.providerError}</p>
         )}
+
+        {(() => {
+          const d = message.data as Record<string, unknown> | undefined;
+          const imgs = d?.images;
+          if (!Array.isArray(imgs) || imgs.length === 0) return null;
+          return (
+            <div className="image-grid" aria-label="Search images">
+              {(imgs as Array<{url?: string; thumbnail?: string; title?: string}>).map((img, idx) => (
+                <a key={idx} href={img.url || img.thumbnail} target="_blank" rel="noopener noreferrer" className="image-grid-item">
+                  <img src={img.thumbnail || img.url} alt={img.title || `Image ${idx + 1}`} loading="lazy" />
+                </a>
+              ))}
+            </div>
+          );
+        })()}
 
         <DiffViewer
           proposals={message.toolProposals}

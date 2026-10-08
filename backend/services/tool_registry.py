@@ -398,8 +398,8 @@ class ToolRegistry:
 
     def _handle_preview_file(self, args: dict[str, Any], _context: dict[str, Any]) -> dict[str, Any]:
         file_id = str(args.get("file_id", "")).strip()
-        max_lines = int(args.get("max_lines", 100))
-        return preview_file(file_id, max_lines=max_lines)
+        max_chars = int(args.get("max_chars", args.get("max_lines", 20_000)))
+        return preview_file(file_id, max_chars=max_chars)
 
     def _handle_propose_file_edit(self, args: dict[str, Any], _context: dict[str, Any]) -> dict[str, Any]:
         file_id = str(args.get("file_id", "")).strip()
@@ -422,12 +422,12 @@ class ToolRegistry:
 
     def _handle_get_system_status(self, _args: dict[str, Any], _context: dict[str, Any]) -> dict[str, Any]:
         db = SQLiteFTSIndex()
-        stats = db.index_stats()
         return {
             "privacy_mode": ai_mode(),
             "history_enabled": history_feature_enabled(),
-            "indexed_sources": stats.get("total_sources", 0),
-            "indexed_chunks": stats.get("total_chunks", 0),
+            "indexed_chunks": db.count,
+            "catalogued_files": db.catalog_count,
+            "registered_roots": db.registered_root_count,
         }
 
     def _handle_generate_image(self, args: dict[str, Any], _context: dict[str, Any]) -> dict[str, Any]:

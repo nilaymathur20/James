@@ -12,6 +12,7 @@ from __future__ import annotations
 import ipaddress
 import json
 import os
+from dataclasses import dataclass
 from typing import Any, Iterator, Sequence
 from urllib.parse import urlparse
 
@@ -51,6 +52,8 @@ def configured_provider() -> str | None:
             return "openrouter"
         if _env("GEMINI_API_KEY"):
             return "gemini"
+        if _env("NEMOTRON_API_KEY"):
+            return "nemotron"
     return None
 
 
@@ -62,7 +65,8 @@ def local_llm_status() -> dict[str, object]:
         "provider": configured_provider(),
         "configured": base_url is not None,
         "base_url": base_url,
-        "model": _env("LOCAL_LLM_MODEL") or _env("GROQ_MODEL") or _env("OPENROUTER_MODEL") or _env("GEMINI_MODEL") or None,
+        "model": _env("LOCAL_LLM_MODEL") or _env("GROQ_MODEL") or _env("OPENROUTER_MODEL")
+    or _env("GEMINI_MODEL") or _env("NEMOTRON_MODEL") or None,
         "cloud_fallback_enabled": False,
     }
 
@@ -84,9 +88,11 @@ def generate_chat_completion(
         return _chat_via_openrouter(messages, sys_prompt, max_tokens=max_tokens)
     if provider == "gemini":
         return _chat_via_gemini(messages, sys_prompt, max_tokens=max_tokens)
+    if provider == "nemotron":
+        return _chat_via_nemotron(messages, sys_prompt, max_tokens=max_tokens)
 
     raise LLMError(
-        "No enabled chat provider is configured. Configure loopback llama.cpp, Groq, OpenRouter, or Gemini.",
+        "No enabled chat provider is configured. Configure loopback llama.cpp, Groq, OpenRouter, Gemini, or Nemotron.",
         status_code=503,
     )
 
@@ -108,6 +114,8 @@ def stream_chat_completion(
         yield from _stream_via_openrouter(messages, sys_prompt, max_tokens=max_tokens)
     elif provider == "gemini":
         yield from _stream_via_gemini(messages, sys_prompt, max_tokens=max_tokens)
+    elif provider == "nemotron":
+        yield from _stream_via_nemotron(messages, sys_prompt, max_tokens=max_tokens)
     else:
         # Fallback to single chunk if no streaming provider
         ans = generate_chat_completion(messages, system_prompt=sys_prompt, max_tokens=max_tokens)
@@ -393,6 +401,81 @@ def _stream_via_gemini(messages: list[dict[str, str]], system_prompt: str, max_t
     yield ans
 
 
+# --- Nemotron Provider (NVIDIA NIM, OpenAI-compatible) ---
+
+def _chat_via_nemotron(messages: list[dict[str, str]], system_prompt: str, max_tokens: int | None = None) -> str:
+    api_key = _env("NEMOTRON_API_KEY")
+    model = _env("NEMOTRON_MODEL") or "nvidia/nemotron-3-ultra-550b-a55b"
+    base_url = _env("NEMOTRON_BASE_URL") or "https://integrate.api.nvidia.com/v1"
+    endpoint = f"{base_url.rstrip('/')}/chat/completions"
+    formatted_messages = [{"role": "system", "content": system_prompt}] + messages
+    payload = {
+        "model": model,
+        "max_tokens": max_tokens or 4096,
+        "temperature": 0.2,
+        "messages": formatted_messages,
+    }
+
+    def _call() -> str:
+        try:
+            response = requests.post(
+                endpoint,
+                headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                json=payload,
+                timeout=(10, 90),
+            )
+        except requests.Timeout as exc:
+            raise LLMError("Nemotron request timed out.", status_code=504) from exc
+        except requests.RequestException as exc:
+            raise LLMError("Could not reach Nemotron.") from exc
+        if not response.ok:
+            raise _provider_error(response, "Nemotron")
+        try:
+            return _as_text(response.json()["choices"][0]["message"]["content"])
+        except Exception as exc:
+            raise LLMError("Nemotron returned an unexpected response.") from exc
+
+    return _retry(_call)
+
+
+def _stream_via_nemotron(messages: list[dict[str, str]], system_prompt: str, max_tokens: int | None = None) -> Iterator[str]:
+    api_key = _env("NEMOTRON_API_KEY")
+    model = _env("NEMOTRON_MODEL") or "nvidia/nemotron-3-ultra-550b-a55b"
+    base_url = _env("NEMOTRON_BASE_URL") or "https://integrate.api.nvidia.com/v1"
+    endpoint = f"{base_url.rstrip('/')}/chat/completions"
+    formatted_messages = [{"role": "system", "content": system_prompt}] + messages
+    payload = {
+        "model": model,
+        "max_tokens": max_tokens or 4096,
+        "temperature": 0.2,
+        "stream": True,
+        "messages": formatted_messages,
+    }
+    response = _stream_request(
+        endpoint,
+        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+        payload=payload,
+        timeout=(10, 90),
+        provider_name="Nemotron",
+    )
+    if not response.ok:
+        raise LLMError(f"Nemotron returned status {response.status_code}")
+    for line in response.iter_lines():
+        if line:
+            decoded = line.decode("utf-8").strip()
+            if decoded.startswith("data: "):
+                data_str = decoded[6:]
+                if data_str == "[DONE]":
+                    break
+                try:
+                    data = json.loads(data_str)
+                    delta = data.get("choices", [{}])[0].get("delta", {}).get("content", "")
+                    if delta:
+                        yield delta
+                except json.JSONDecodeError:
+                    continue
+
+
 # --- Utilities ---
 
 def _local_base_url() -> str | None:
@@ -447,7 +530,9 @@ def _provider_error(response: requests.Response, provider_name: str) -> LLMError
     message = f"{provider_name} request failed"
     if provider_message:
         message += f": {str(provider_message)[:500]}"
-    return LLMError(message)
+    err = LLMError(message, status_code=getattr(response, "status_code", 502))
+    err._response = response  # type: ignore[attr-defined]
+    return err
 
 
 def _as_text(value: Any) -> str:
@@ -474,6 +559,107 @@ def _positive_int_env(name: str, default: int, minimum: int, maximum: int) -> in
     except ValueError:
         return default
     return min(maximum, max(minimum, value))
+
+
+# --- Key utilities ---
+
+def mask_key(key: str) -> str:
+    """Mask an API key for safe display: sk-...a9f2."""
+    if not key or len(key) < 8:
+        return "***" if key else ""
+    return key[:2] + "..." + key[-4:]
+
+
+def key_source(name: str) -> str:
+    """Return where a key was found: 'shell' | '.env' | 'none'."""
+    if os.getenv(name):
+        return "shell"
+    # Check backend/.env and project-root/.env without loading them
+    from ..main import BACKEND_DIR, PROJECT_ROOT
+    for env_path in (BACKEND_DIR / ".env", PROJECT_ROOT / ".env"):
+        if env_path.is_file():
+            try:
+                for line in env_path.read_text(encoding="utf-8").splitlines():
+                    if line.strip().startswith(f"{name}="):
+                        return ".env"
+            except OSError:
+                continue
+    return "none"
+
+
+# --- Error classification ---
+
+@dataclass
+class ProviderError:
+    code: str
+    message: str
+    status_code: int = 502
+    retry_after: int | None = None
+
+
+def classify_provider_error(response: requests.Response | None, provider_name: str,
+                            *, timeout_occurred: bool = False,
+                            connection_error: bool = False,
+                            status_code: int = 0,
+                            retry_after: int | None = None) -> ProviderError:
+    """Map HTTP/network failures to structured, user-friendly error codes."""
+    if connection_error:
+        return ProviderError("NETWORK_OFFLINE", f"Could not reach {provider_name}. Check your network.", 503)
+    if timeout_occurred:
+        return ProviderError("TIMEOUT", f"{provider_name} request timed out.", 504)
+    if response is None and status_code >= 400:
+        if status_code == 401 or status_code == 403:
+            return ProviderError("AUTH_FAILED", f"{provider_name}: authentication failed. Check your API key.", status_code)
+        if status_code == 402:
+            return ProviderError("QUOTA_EXCEEDED", f"{provider_name}: quota exceeded. Upgrade your plan or wait for reset.", status_code)
+        if status_code == 404:
+            return ProviderError("MODEL_NOT_FOUND", f"{provider_name}: model not found. Check the model name.", status_code)
+        if status_code == 429:
+            return ProviderError("RATE_LIMITED", f"{provider_name}: rate limited.", status_code, retry_after=retry_after)
+        return ProviderError("PROVIDER_DOWN", f"{provider_name} returned {status_code}.", status_code)
+    if response is None:
+        return ProviderError("PROVIDER_DOWN", f"{provider_name} is unreachable.", 503)
+
+    status = response.status_code
+    payload = response.json() if response.headers.get("content-type", "").startswith("application/json") else {}
+    error_obj = payload.get("error", {}) if isinstance(payload, dict) else {}
+    provider_msg = error_obj.get("message", "") if isinstance(error_obj, dict) else str(error_obj)
+
+    if status == 401 or status == 403:
+        return ProviderError("AUTH_FAILED", f"{provider_name}: authentication failed. Check your API key.", status,
+                             retry_after=None)
+    if status == 402:
+        return ProviderError("QUOTA_EXCEEDED", f"{provider_name}: quota exceeded. Upgrade your plan or wait for reset.", status)
+    if status == 404:
+        return ProviderError("MODEL_NOT_FOUND", f"{provider_name}: model not found. Check the model name.", status)
+    if status == 429:
+        retry = int(response.headers.get("retry-after", 0)) if response.headers.get("retry-after") else None
+        # Distinguish quota exhaustion from rate limiting
+        try:
+            err_payload = response.json().get("error", {}) if response.headers.get("content-type", "").startswith("application/json") else {}
+            err_msg = err_payload.get("message", "") if isinstance(err_payload, dict) else str(err_payload)
+        except Exception:
+            err_msg = ""
+        if "quota" in err_msg.lower():
+            return ProviderError("QUOTA_EXCEEDED", f"{provider_name}: quota exceeded. Upgrade your plan or wait for reset.", status, retry_after=retry)
+        return ProviderError("RATE_LIMITED", f"{provider_name}: rate limited.", status, retry_after=retry)
+    if status >= 500:
+        return ProviderError("PROVIDER_DOWN", f"{provider_name} returned {status}. The provider may be down.", status)
+    return ProviderError("PROVIDER_DOWN", f"{provider_name} request failed with status {status}.", status)
+
+
+def format_error_response(provider: str, error: ProviderError, latency_ms: float) -> dict[str, object]:
+    """Build a safe test-response dict. Never echoes the key."""
+    out: dict[str, object] = {
+        "provider": provider,
+        "ok": False,
+        "error_code": error.code,
+        "message": error.message,
+        "latency_ms": round(latency_ms, 1),
+    }
+    if error.retry_after is not None:
+        out["retry_after"] = error.retry_after
+    return out
 
 
 def _stream_request(

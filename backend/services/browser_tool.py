@@ -122,24 +122,45 @@ def web_search(query: str, num_results: int = 5) -> dict[str, Any]:
             return {"error": "No results found.", "query": clean_query}
 
         snippets = []
-        for r in results:
+        for i, r in enumerate(results, 1):
             title = r.get("title", "")
             body = r.get("body", "")
             href = r.get("href", "")
-            line = title
+            line = f'<span style="font-size:1.1em;font-weight:700;">{i}. {title}</span>'
             if body:
-                line += f" — {body}"
+                line += f'<br/><span style="font-size:0.95em;">{body}</span>'
             if href:
-                line += f" [{href}]"
+                line += f'<br/><a href="{href}" target="_blank" rel="noopener noreferrer" style="font-size:0.9em;color:#557ee2;">🔗 Link</a>'
             snippets.append(line)
 
         return {
             "query": clean_query,
-            "results_summary": "\n".join(snippets),
+            "results_summary": "\n\n".join(snippets),
             "engine": "ddgs",
         }
     except Exception as exc:
         return {"error": f"Search error: {exc}", "query": clean_query}
+
+
+def image_search(query: str, max_images: int = 5) -> list[dict[str, str]]:
+    """Search the web for images via ddgs (DuckDuckGo)."""
+    clean_query = query.strip()
+    if not clean_query:
+        return []
+    try:
+        from ddgs import DDGS
+        with DDGS() as ddgs:
+            results = list(ddgs.images(clean_query, max_results=max_images))
+        images = []
+        for r in results:
+            images.append({
+                "url": r.get("url", ""),
+                "thumbnail": r.get("thumbnail", ""),
+                "title": r.get("title", clean_query),
+            })
+        return images
+    except Exception:
+        return []
 
 
 def _clean_html_text(text: str) -> str:

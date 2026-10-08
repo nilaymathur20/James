@@ -370,11 +370,12 @@ def generate_music_unlimited(
     prompt: str,
     model: str = "stereo-medium",
     duration: int = 30,
+    hf_token: str = "",
 ) -> dict[str, Any]:
     """Generate music via Surn/UnlimitedMusicGen on Hugging Face Spaces.
 
-    Free, no API key needed. Uses the Gradio client for reliable API access
-    (Gradio 5.x spaces no longer support the old /api/predict_simple HTTP endpoint).
+    Free, no API key needed by default. Uses the Gradio client for reliable API access.
+    Pass hf_token for authenticated requests (higher quota).
     """
     try:
         from gradio_client import Client
@@ -395,7 +396,10 @@ def generate_music_unlimited(
         return {"error": "Prompt cannot be empty.", "backend": "hf-spaces"}
 
     try:
-        client = Client("Surn/UnlimitedMusicGen")
+        headers = {}
+        if hf_token:
+            headers["Authorization"] = f"Bearer {hf_token}"
+        client = Client("Surn/UnlimitedMusicGen", token=hf_token or None)
         result = client.predict(
             model=model,
             text=clean_prompt,
@@ -418,7 +422,10 @@ def generate_music_unlimited(
 
         audio_url = result[0]
         # Download the audio file
-        audio_resp = requests.get(audio_url, timeout=60)
+        download_headers = {}
+        if hf_token:
+            download_headers["Authorization"] = f"Bearer {hf_token}"
+        audio_resp = requests.get(audio_url, headers=download_headers, timeout=60)
         if audio_resp.status_code != 200:
             return {
                 "error": f"Could not download audio from HF Spaces: {audio_url}",
@@ -546,21 +553,57 @@ def generate_music(
     if backend == "auto":
         backend = _os.getenv("MUSIC_BACKEND", "auto")
 
+    has_or_key = bool(_os.getenv("OPENROUTER_API_KEY", "").strip())
+    has_hf_token = bool(_os.getenv("HF_TOKEN", "").strip())
+
     if backend == "openrouter":
-        result = generate_music_openrouter(prompt=prompt, model=model)
+        if has_or_key:
+            result = generate_music_openrouter(prompt=prompt, model=model)
+            if "error" not in result:
+                return result
+        return {"error": "OpenRouter failed and no fallback available.", "backend": "openrouter"}
+
+    if backend == "hf-spaces":
+        result = generate_music_unlimited(prompt=prompt, model=model, hf_token=_os.getenv("HF_TOKEN", ""))
         if "error" not in result:
             return result
-        # Fall through to HF Spaces
-    if backend == "hf-spaces" or backend == "auto":
-        result = generate_music_unlimited(prompt=prompt)
-        if "error" not in result:
-            return result
-        # Both failed — return HF Spaces error (more informative than OpenRouter key error)
+        # Fall back to OpenRouter if key available
+        if has_or_key:
+            or_result = generate_music_openrouter(prompt=prompt, model=model)
+            if "error" not in or_result:
+                return or_result
         return result
+
+    if backend == "auto":
+        # Try OpenRouter first if key available, then HF Spaces (free, no key needed)
+        if has_or_key:
+            result = generate_music_openrouter(prompt=prompt, model=model)
+            if "error" not in result:
+                return result
+            # OpenRouter failed — try HF Spaces
+            if has_hf_token:
+                hf_result = generate_music_unlimited(prompt=prompt, model=model, hf_token=_os.getenv("HF_TOKEN", ""))
+                if "error" not in hf_result:
+                    return hf_result
+            else:
+                hf_result = generate_music_unlimited(prompt=prompt, model=model)
+                if "error" not in hf_result:
+                    return hf_result
+            return {**result, "fallback_notice": "OpenRouter failed; HF Spaces also unavailable."}
+        else:
+            # No OpenRouter key — try HF Spaces (free, no key needed)
+            if has_hf_token:
+                result = generate_music_unlimited(prompt=prompt, model=model, hf_token=_os.getenv("HF_TOKEN", ""))
+            else:
+                result = generate_music_unlimited(prompt=prompt, model=model)
+            if "error" not in result:
+                return result
+            return {**result, "fallback_notice": "HF Spaces failed; no OpenRouter key configured."}
+
     # Explicit backend selected — return its result even if error
     if backend == "gemini":
         return generate_music_gemini(prompt=prompt, model=model)
-    return result
+    return {"error": "Unknown backend.", "backend": backend}
 
 
 def generate_video(

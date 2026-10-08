@@ -65,20 +65,50 @@ def run_assistant_request(
             loop = asyncio.get_running_loop()
         except RuntimeError:
             loop = None
+        provider_failed = False
+        provider_error_msg = None
         if loop and loop.is_running():
             # We're inside an async context (e.g. WebSocket path) — run in a thread
             # to avoid nested event loop errors.
             import concurrent.futures
             with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-                agent_result = pool.submit(
-                    lambda: asyncio.run(agent.run(payload.text, context=context, event_callback=progress_callback, token_callback=token_callback))
-                ).result()
+                try:
+                    agent_result = pool.submit(
+                        lambda: asyncio.run(agent.run(payload.text, context=context, event_callback=progress_callback, token_callback=token_callback))
+                    ).result()
+                except Exception as exc:
+                    provider_failed = True
+                    provider_error_msg = str(exc)
         else:
-            agent_result = asyncio.run(agent.run(payload.text, context=context, event_callback=progress_callback, token_callback=token_callback))
+            try:
+                agent_result = asyncio.run(agent.run(payload.text, context=context, event_callback=progress_callback, token_callback=token_callback))
+            except Exception as exc:
+                provider_failed = True
+                provider_error_msg = str(exc)
+
+        # Fallback rule: provider failed → SQLite retrieval ONLY, never silently to another cloud
+        if provider_failed:
+            _emit(progress_callback, "assistant_status", "fallback", f"Provider {provider} failed: {provider_error_msg}. Falling back to local retrieval.")
+            answer = answer_with_rag(payload.text, history_dir, use_history=payload.use_history)
+            agent_result = {
+                "kind": "agent_fallback",
+                "response": answer.response,
+                "mode": answer.mode,
+                "provider": answer.provider,
+                "provider_error": provider_error_msg,
+                "results": [serialize_match(match) for match in answer.matches],
+                "file_candidates": [],
+                "history_opted_in": payload.use_history and history_feature_enabled(),
+                "history_used": sum(1 for match in answer.matches if match.chunk.source_type == "history"),
+                "fallback_notice": f"Provider '{provider}' failed ({provider_error_msg}). Using local SQLite retrieval only — no cloud fallback.",
+            }
+            _emit(progress_callback, "assistant_status", "complete", "Response is ready (fallback).", mode=answer.mode)
+            return agent_result
+
         _emit(progress_callback, "assistant_status", "complete", "Agent processing complete.")
         return agent_result
 
-    # 3. Default Grounded RAG
+    # 3. Default Grounded RAG (fallback — surface in metadata)
     _emit(progress_callback, "assistant_status", "answering", "Retrieving local context and preparing a response.")
     answer = answer_with_rag(payload.text, history_dir, use_history=payload.use_history)
     result = {
@@ -91,6 +121,7 @@ def run_assistant_request(
         "file_candidates": [],
         "history_opted_in": payload.use_history and history_feature_enabled(),
         "history_used": sum(1 for match in answer.matches if match.chunk.source_type == "history"),
+        "fallback_notice": "No cloud provider available — using local SQLite retrieval only.",
     }
     _emit(progress_callback, "assistant_status", "complete", "Response is ready.", mode=answer.mode)
     return result

@@ -290,6 +290,28 @@ button:disabled {
   border-radius: var(--radius-lg);
 }
 
+.image-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+.image-grid-item {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--color-border-muted);
+  display: block;
+  text-decoration: none;
+}
+
+.image-grid-item img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius-lg);
+}
+
 .message-media-audio {
   margin-top: var(--space-3);
   padding: var(--space-2);
@@ -781,20 +803,188 @@ button:disabled {
 }
 
 /* --------------------------------------------------------------------------
- * Composer
+ * App Layout — Liquid Aurora shell
  * -------------------------------------------------------------------------- */
-.composer {
-  position: sticky;
-  bottom: 0;
+.app-layout {
+  display: flex;
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.app-main {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-  width: min(var(--app-max-width), 100%);
-  margin: 0 auto;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* --------------------------------------------------------------------------
+ * Left Rail
+ * -------------------------------------------------------------------------- */
+.rail {
+  width: var(--rail-width);
+  min-width: var(--rail-width);
+  border-right: 1px solid var(--color-border);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  display: flex;
+  flex-direction: column;
+  transition: width var(--motion-fast), min-width var(--motion-fast), opacity var(--motion-fast);
+  overflow: hidden;
+}
+.rail--collapsed {
+  width: 40px;
+  min-width: 40px;
+}
+.rail__toggle {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: var(--color-text-dim);
+  font-size: 14px;
+  padding: var(--space-2);
+  cursor: pointer;
+  text-align: left;
+}
+.rail__toggle:hover { color: var(--color-accent); }
+.rail__content {
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  flex: 1;
+}
+.rail__section { display: flex; flex-direction: column; gap: var(--space-1); }
+.rail__heading {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-dim);
+  margin: 0;
+}
+.rail__empty {
+  font-size: 11px;
+  color: var(--color-text-hint);
+  margin: 0;
+}
+.rail__msg-count {
+  margin-top: auto;
+  font-size: 10px;
+  color: var(--color-text-dim);
+  text-align: center;
+  padding: var(--space-2);
+}
+
+/* --------------------------------------------------------------------------
+ * Activity Drawer
+ * -------------------------------------------------------------------------- */
+.drawer {
+  width: 0;
+  min-width: 0;
+  border-left: 1px solid var(--color-border);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  display: flex;
+  flex-direction: column;
+  transition: width var(--motion-fast), min-width var(--motion-fast);
+  overflow: hidden;
+}
+.drawer--open {
+  width: var(--drawer-width);
+  min-width: var(--drawer-width);
+}
+.drawer__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+.drawer__title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text-strong);
+}
+.drawer__close {
+  border: none;
+  background: transparent;
+  color: var(--color-text-dim);
+  font-size: 16px;
+  cursor: pointer;
+  padding: var(--space-1);
+  border-radius: var(--radius-sm);
+}
+.drawer__close:hover { color: var(--color-text); background: var(--color-surface-elevated); }
+.drawer__body {
+  flex: 1;
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  overflow-y: auto;
+}
+.drawer__section { display: flex; flex-direction: column; gap: var(--space-1); }
+.drawer__heading {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-dim);
+  margin: 0;
+}
+
+/* --------------------------------------------------------------------------
+ * Floating composer
+ * -------------------------------------------------------------------------- */
+.composer-float {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-3);
   padding: var(--space-3) clamp(var(--space-4), 3vw, var(--space-5)) var(--space-4);
-  border-top: 1px solid var(--color-border);
-  background: rgba(17, 22, 30, 0.96);
-  backdrop-filter: blur(12px);
+  margin: 0 auto;
+  width: min(var(--composer-max-width), 100%);
+}
+
+/* --------------------------------------------------------------------------
+ * Theme switcher (floating bottom-left)
+ * -------------------------------------------------------------------------- */
+.theme-switcher-float {
+  position: fixed;
+  bottom: var(--space-4);
+  left: var(--space-4);
+  z-index: 50;
+}
+.theme-switcher {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--glass-bg-strong);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--shadow-glass);
+}
+.theme-btn {
+  padding: 4px 10px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--color-text-dim);
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--motion-fast);
+  font-family: var(--font-sans);
+}
+.theme-btn:hover { color: var(--color-text); background: var(--color-surface-elevated); }
+.theme-btn--active {
+  background: var(--gradient-accent);
+  color: #fff;
+  font-weight: 700;
 }
 
 .composer-input-row {
